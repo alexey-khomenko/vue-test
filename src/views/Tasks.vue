@@ -4,16 +4,16 @@
 
     <div class="row">
       <div class="input-field col s6">
-        <select id="filter" ref="filter" v-model="filter">
+        <select id="filterEl" ref="filter" v-model="value">
           <option value="" disabled selected></option>
           <option value="active">Active</option>
           <option value="outdated">Outdated</option>
           <option value="completed">Completed</option>
         </select>
-        <label for="filter">Status filter</label>
+        <label for="filterEl">Status filter</label>
       </div>
-      <div class="col s6" v-if="filter">
-        <button type="button" class="btn" @click="filter = null">Reset</button>
+      <div class="col s6" v-if="value.length">
+        <button type="button" class="btn" @click="value = ''">Reset</button>
       </div>
     </div>
 
@@ -50,24 +50,32 @@
 <script>
 export default {
   name: 'Tasks',
-  data: () => ({
-    filter: null
-  }),
+  data() {
+    return {
+      filter: null,
+      value: '',
+    }
+  },
   computed: {
     tasks() {
       return this.$store.getters.tasks
     },
     showTasks() {
       return this.tasks.filter(task => {
-        if (!this.filter) return true;
+        if (!this.value.length) return true
 
-        return task.status === this.filter
+        return task.status === this.value
       })
     }
   },
   mounted() {
-    M.FormSelect.init(this.$refs.filter, {})
-  }
+    this.filter = M.FormSelect.init(this.$refs.filter, {})
+  },
+  unmounted() {
+    if (this.filter && this.filter.destroy) {
+      this.filter.destroy()
+    }
+  },
 }
 </script>
 

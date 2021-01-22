@@ -36,21 +36,13 @@
 <script>
 export default {
   name: 'Create',
-  data: () => ({
-    title: '',
-    description: '',
-    date: null,
-    chips: null
-  }),
-  mounted() {
-    this.chips = M.Chips.init(this.$refs.chips, {
-      placeholder: 'Task tags'
-    })
-    this.date = M.Datepicker.init(this.$refs.datepicker, {
-      format: 'dd.mm.yyyy',
-      defaultDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      setDefaultDate: true
-    })
+  data() {
+    return {
+      title: '',
+      description: '',
+      date: null,
+      chips: null,
+    }
   },
   methods: {
     createTask() {
@@ -60,11 +52,21 @@ export default {
         description: this.description,
         deadline: this.date.date,
         tags: this.chips.chipsData,
-        status: 'active'
+        status: 'active',
       }
       this.$store.dispatch('createTask', task)
       this.$router.push('/')
     }
+  },
+  mounted() {
+    this.chips = M.Chips.init(this.$refs.chips, {
+      placeholder: 'Task tags'
+    })
+    this.date = M.Datepicker.init(this.$refs.datepicker, {
+      format: 'dd.mm.yyyy',
+      defaultDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      setDefaultDate: true,
+    })
   },
   unmounted() {
     if (this.date && this.date.destroy) {
@@ -74,6 +76,6 @@ export default {
     if (this.chips && this.chips.destroy) {
       this.chips.destroy()
     }
-  }
+  },
 }
 </script>

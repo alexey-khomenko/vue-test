@@ -10,7 +10,8 @@
           </div>
 
           <div class="input-field">
-            <textarea id="description" class="materialize-textarea" v-model="description" :disabled="task.status === 'completed'"></textarea>
+            <textarea id="description" class="materialize-textarea"
+                      v-model="description" :disabled="task.status === 'completed'"></textarea>
             <label for="description">Description</label>
             <span class="character-counter" style="float: right; font-size: 12px;">{{ description.length }}/2048</span>
           </div>
@@ -34,31 +35,18 @@
 </template>
 
 <script>
-// todo мобильная вёрстка
+
+// todo tasks select filter reset option
 // todo trim тегам, обновление
 export default {
   name: 'Task',
-  data: () => ({
-    // todo типы данных
-    description: '',
-    date: null,
-    chips: null
-  }),
-  mounted() {
-    this.description = this.task.description
-    this.chips = M.Chips.init(this.$refs.chips, {
-      placeholder: 'Task tags',
-      data: this.task.tags
-    })
-    this.date = M.Datepicker.init(this.$refs.datepicker, {
-      format: 'dd.mm.yyyy',
-      defaultDate: new Date(this.task.deadline),
-      setDefaultDate: true
-    })
-    setTimeout(() => {
-      M.updateTextFields()
-      M.textareaAutoResize(document.getElementById('description'))
-    }, 0)
+  data() {
+    return {
+      // todo типы данных
+      description: '',
+      date: null,
+      chips: null
+    }
   },
   methods: {
     updateTask() {
@@ -75,6 +63,28 @@ export default {
       this.$router.push('/')
     }
   },
+  computed: {
+    task() {
+      // todo если таска нет - 404
+      return this.$store.getters.taskById(+this.$route.params.id)
+    }
+  },
+  mounted() {
+    this.description = this.task.description
+    this.chips = M.Chips.init(this.$refs.chips, {
+      placeholder: 'Task tags',
+      data: this.task.tags
+    })
+    this.date = M.Datepicker.init(this.$refs.datepicker, {
+      format: 'dd.mm.yyyy',
+      defaultDate: new Date(this.task.deadline),
+      setDefaultDate: true
+    })
+    setTimeout(() => {
+      M.updateTextFields()
+      M.textareaAutoResize(document.getElementById('description'))
+    }, 0)
+  },
   unmounted() {
     if (this.date && this.date.destroy) {
       this.date.destroy()
@@ -84,13 +94,5 @@ export default {
       this.chips.destroy()
     }
   },
-  computed: {
-    task() {
-      // todo если таска нет - 404
-      return this.$store.getters.taskById(+this.$route.params.id)
-    }
-  }
 }
-
-// todo tasks select filter reset option
 </script>
