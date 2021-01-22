@@ -1,6 +1,6 @@
 <template>
-  <div class="container">
-    <div class="row" v-if="task">
+  <div class="container" v-if="task">
+    <div class="row">
       <div class="col s6 offset-s3">
         <h1>{{ task.title }}</h1>
 
@@ -28,24 +28,17 @@
         </form>
       </div>
     </div>
-    <div v-else>
-      <h1>Task not found</h1>
-    </div>
   </div>
 </template>
 
 <script>
-
-// todo tasks select filter reset option
-// todo trim тегам, обновление
 export default {
   name: 'Task',
   data() {
     return {
-      // todo типы данных
       description: '',
       date: null,
-      chips: null
+      chips: null,
     }
   },
   methods: {
@@ -53,7 +46,7 @@ export default {
       const task = {
         id: this.task.id,
         description: this.description,
-        deadline: this.date.date
+        deadline: this.date.date,
       }
       this.$store.dispatch('updateTask', task)
       this.$router.push('/')
@@ -65,11 +58,16 @@ export default {
   },
   computed: {
     task() {
-      // todo если таска нет - 404
-      return this.$store.getters.taskById(+this.$route.params.id)
+      // todo 404
+      // todo в какой момент получать данные?
+      const task = this.$store.getters.taskById(+this.$route.params.id)
+      if (!task) this.$router.push('/404')
+      return task;
     }
   },
   mounted() {
+    if (!this.task) return;
+
     this.description = this.task.description
     this.chips = M.Chips.init(this.$refs.chips, {
       placeholder: 'Task tags',

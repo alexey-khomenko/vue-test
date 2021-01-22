@@ -68,6 +68,11 @@ export default {
       })
     }
   },
+  watch: {
+    value(val) {
+      if (!val.length) this.filter.input.value = ''
+    }
+  },
   mounted() {
     this.filter = M.FormSelect.init(this.$refs.filter, {})
   },
