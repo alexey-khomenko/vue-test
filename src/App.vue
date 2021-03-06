@@ -183,6 +183,7 @@ export default {
     },
     remove(item) {
       this.tickers = this.tickers.filter(t => t !== item);
+      if (this.sel?.name === item.name) this.sel = null;
     },
     select(item) {
       this.sel = item;
