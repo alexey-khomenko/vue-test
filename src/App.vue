@@ -76,8 +76,11 @@
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <div v-for="t in tickers" :key="t.name"
                class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
+               :class="{'border-4': sel === t}"
           >
-            <div class="px-4 py-5 sm:p-6 text-center">
+            <div class="px-4 py-5 sm:p-6 text-center"
+                 @click="select(t)"
+            >
               <dt class="text-sm font-medium text-gray-500 truncate">
                 {{ t.name }} - USD
               </dt>
@@ -86,7 +89,7 @@
               </dd>
             </div>
             <div class="w-full border-t border-gray-200"></div>
-            <button @click.stop="remove(t)"
+            <button @click="remove(t)"
                     class="flex items-center justify-center font-medium w-full bg-gray-100 px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600 hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none">
               <svg class="h-5 w-5"
                    xmlns="http://www.w3.org/2000/svg"
@@ -106,17 +109,20 @@
         <hr class="w-full border-t border-gray-600 my-4"/>
       </template>
 
-      <section class="relative">
+      <section class="relative" v-if="sel">
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
-          VUE - USD
+          {{ sel.name }} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
-          <div class="bg-purple-800 border w-10 h-24"></div>
-          <div class="bg-purple-800 border w-10 h-32"></div>
-          <div class="bg-purple-800 border w-10 h-48"></div>
-          <div class="bg-purple-800 border w-10 h-16"></div>
+          <div class="bg-purple-800 border w-10 h-24"
+               :style="{height: `${bar}%`}"
+               v-for="(bar, idx) in normalizeGraph()" :key="idx"
+          ></div>
         </div>
-        <button type="button" class="absolute top-0 right-0">
+        <button type="button"
+                class="absolute top-0 right-0"
+                @click="sel = null"
+        >
           <svg xmlns="http://www.w3.org/2000/svg"
                xmlns:xlink="http://www.w3.org/1999/xlink"
                xmlns:svgjs="http://svgjs.com/svgjs"
@@ -131,7 +137,7 @@
           >
             <g>
               <path fill="#718096"
-                    d="M436.896,74.869c-99.84-99.819-262.208-99.819-362.048,0c-99.797,99.819-99.797,262.229,0,362.048    c49.92,49.899,115.477,74.837,181.035,74.837s131.093-24.939,181.013-74.837C536.715,337.099,536.715,174.688,436.896,74.869z     M361.461,331.317c8.341,8.341,8.341,21.824,0,30.165c-4.16,4.16-9.621,6.251-15.083,6.251c-5.461,0-10.923-2.091-15.083-6.251    l-75.413-75.435l-75.392,75.413c-4.181,4.16-9.643,6.251-15.083,6.251c-5.461,0-10.923-2.091-15.083-6.251    c-8.341-8.341-8.341-21.845,0-30.165l75.392-75.413l-75.413-75.413c-8.341-8.341-8.341-21.845,0-30.165    c8.32-8.341,21.824-8.341,30.165,0l75.413,75.413l75.413-75.413c8.341-8.341,21.824-8.341,30.165,0    c8.341,8.32,8.341,21.824,0,30.165l-75.413,75.413L361.461,331.317z"
+                    d="M436.896,74.869c-99.84-99.819-262.208-99.819-362.048,0c-99.797,99.819-99.797,262.229,0,362.048 c49.92,49.899,115.477,74.837,181.035,74.837s131.093-24.939,181.013-74.837C536.715,337.099,536.715,174.688,436.896,74.869z     M361.461,331.317c8.341,8.341,8.341,21.824,0,30.165c-4.16,4.16-9.621,6.251-15.083,6.251c-5.461,0-10.923-2.091-15.083-6.251    l-75.413-75.435l-75.392,75.413c-4.181,4.16-9.643,6.251-15.083,6.251c-5.461,0-10.923-2.091-15.083-6.251    c-8.341-8.341-8.341-21.845,0-30.165l75.392-75.413l-75.413-75.413c-8.341-8.341-8.341-21.845,0-30.165 c8.32-8.341,21.824-8.341,30.165,0l75.413,75.413l75.413-75.413c8.341-8.341,21.824-8.341,30.165,0 c8.341,8.32,8.341,21.824,0,30.165l-75.413,75.413L361.461,331.317z"
                     data-original="#000000"
               ></path>
             </g>
@@ -148,23 +154,53 @@ export default {
   data() {
     return {
       ticker: '',
-      tickers: []
+      tickers: [],
+      sel: null,
+      graph: []
     };
   },
   methods: {
     add() {
       if (this.ticker.length === 0) return;
 
-      const newTicker = {
+      const current_ticker = {
         name: this.ticker,
-        price: 0
+        price: '-'
       };
 
-      this.tickers.push(newTicker);
+      this.tickers.push(current_ticker);
+
+      setInterval(async () => {
+        const f = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${current_ticker.name}&tsyms=USD`);
+        const r = await f.json();
+
+        this.tickers.find(t => t.name === current_ticker.name).price = r.USD > 1 ? r.USD.toFixed(2) : r.USD.toPrecision(2);
+
+        if (this.sel?.name === current_ticker.name) this.graph.push(r.USD);
+      }, 3000);
+
       this.ticker = '';
     },
     remove(item) {
       this.tickers = this.tickers.filter(t => t !== item);
+    },
+    select(item) {
+      this.sel = item;
+      this.graph = [];
+    },
+    normalizeGraph() {
+      const max_value = Math.max(...this.graph);
+      const min_value = Math.min(...this.graph);
+
+      let result = [];
+
+      for (let price of this.graph) {
+        const height = min_value === max_value ? 5 : 5 + (price - min_value) * 95 / (max_value - min_value);
+
+        result.push(height);
+      }
+
+      return result;
     }
   }
 }
