@@ -162,6 +162,8 @@
 </template>
 
 <script>
+import {loadTickers} from './api';
+
 export default {
   name: 'App',
   data() {
@@ -193,10 +195,12 @@ export default {
 
     if (data) {
       this.tickers = JSON.parse(data);
-      for (let t of this.tickers) {
-        this.subscribeToUpdates(t.name);
-      }
+      // for (let t of this.tickers) {
+      //   this.subscribeToUpdates(t.name);
+      // }
     }
+
+    setInterval(this.updateTickers, 5000);
 
     const f = await fetch(`https://min-api.cryptocompare.com/data/all/coinlist?summary=true`);
     const r = await f.json();
@@ -291,17 +295,29 @@ export default {
         this.add();
       }
     },
-    subscribeToUpdates(ticker_name) {
-      setInterval(async () => {
-        const f = await fetch(`https://min-api.cryptocompare.com/data/price?fsym=${ticker_name}&tsyms=USD`);
-        const r = await f.json();
+    async updateTickers(ticker_name) {
+      if (!this.tickers.length) {
+        return;
+      }
 
-        this.tickers.find(t => t.name === ticker_name).price = r.USD > 1 ? r.USD.toFixed(2) : r.USD.toPrecision(2);
+      const exchange_data = await loadTickers(this.tickers.map(t => t.name));
 
-        if (this.selected_ticker?.name === ticker_name) {
-          this.graph.push(r.USD);
+      for (let ticker of this.tickers) {
+        const price = exchange_data[ticker.name];
+
+        if (!price) {
+          ticker.price = '-';
+        } else {
+          const normalized_price = 1 / price;
+          ticker.price = normalized_price > 1 ? normalized_price.toFixed(2) : normalized_price.toPrecision(2);
         }
-      }, 3000);
+      }
+
+      // todo 36:10
+
+      // if (this.selected_ticker?.name === ticker_name) {
+      //   this.graph.push(exchange_data.USD);
+      // }
     },
     add() {
       const name = this.ticker.toUpperCase();
@@ -322,8 +338,6 @@ export default {
       const current_ticker = {name: name, price: '-'};
 
       this.tickers = [...this.tickers, current_ticker];
-
-      this.subscribeToUpdates(name);
 
       this.error = false;
       this.ticker = '';
