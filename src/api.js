@@ -15,4 +15,11 @@ export const loadTickers = (tickers) => {
                 )
             )
         );
-}
+};
+
+export const loadCoins = async () => {
+    const f = await fetch(`https://min-api.cryptocompare.com/data/all/coinlist?summary=true`);
+    const r = await f.json();
+
+    return r.Data;
+};

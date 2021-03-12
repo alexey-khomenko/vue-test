@@ -162,7 +162,7 @@
 </template>
 
 <script>
-import {loadTickers} from './api';
+import {loadTickers, loadCoins} from './api';
 
 export default {
   name: 'App',
@@ -199,32 +199,31 @@ export default {
 
     setInterval(this.updateTickers, 5000);
 
-    const f = await fetch(`https://min-api.cryptocompare.com/data/all/coinlist?summary=true`);
-    const r = await f.json();
 
-    for (let coin in r.Data) {
-      this.coins.push({name: r.Data[coin]['FullName'], symbol: r.Data[coin]['Symbol']});
+    let coins = await loadCoins();
+    for (let coin in coins) {
+      this.coins.push({name: coins[coin]['FullName'], symbol: coins[coin]['Symbol']});
     }
   },
   computed: {
     hints() {
       const name = this.ticker.toUpperCase();
 
-      if (name.length) {
-        let result = [];
-        for (let c of this.coins) {
-          if (c.name.toUpperCase().includes(name) || c.symbol.includes(name)) {
-            result.push(c.symbol);
-          }
-
-          if (result.length > 3) {
-            return result;
-          }
-        }
-        return result;
-      } else {
+      if (!name.length) {
         return [];
       }
+
+      let result = [];
+      for (let c of this.coins) {
+        if (c.name.toUpperCase().includes(name) || c.symbol.includes(name)) {
+          result.push(c.symbol);
+        }
+
+        if (result.length > 3) {
+          return result;
+        }
+      }
+      return result;
     },
     start_index() {
       return (this.page - 1) * 6;
