@@ -98,7 +98,7 @@
                 {{ t.name }} - USD
               </dt>
               <dd class="mt-1 text-3xl font-semibold text-gray-900">
-                {{ t.price }}
+                {{ formatPrice(t.price) }}
               </dd>
             </div>
             <div class="w-full border-t border-gray-200"></div>
@@ -195,9 +195,6 @@ export default {
 
     if (data) {
       this.tickers = JSON.parse(data);
-      // for (let t of this.tickers) {
-      //   this.subscribeToUpdates(t.name);
-      // }
     }
 
     setInterval(this.updateTickers, 5000);
@@ -289,13 +286,19 @@ export default {
     }
   },
   methods: {
+    formatPrice(price) {
+      if (price === '-') {
+        return price;
+      }
+      return price > 1 ? price.toFixed(2) : price.toPrecision(2);
+    },
     activity(event) {
       this.error = false;
       if (event.key === 'Enter') {
         this.add();
       }
     },
-    async updateTickers(ticker_name) {
+    async updateTickers() {
       if (!this.tickers.length) {
         return;
       }
@@ -305,19 +308,8 @@ export default {
       for (let ticker of this.tickers) {
         const price = exchange_data[ticker.name];
 
-        if (!price) {
-          ticker.price = '-';
-        } else {
-          const normalized_price = 1 / price;
-          ticker.price = normalized_price > 1 ? normalized_price.toFixed(2) : normalized_price.toPrecision(2);
-        }
+        ticker.price = price ?? '-';
       }
-
-      // todo 36:10
-
-      // if (this.selected_ticker?.name === ticker_name) {
-      //   this.graph.push(exchange_data.USD);
-      // }
     },
     add() {
       const name = this.ticker.toUpperCase();
