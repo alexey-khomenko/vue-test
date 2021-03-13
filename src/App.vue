@@ -162,7 +162,7 @@
 </template>
 
 <script>
-import {loadTickers, loadCoins} from './api';
+import {subscribeToTicker, loadCoins} from './api';
 
 export default {
   name: 'App',
@@ -191,13 +191,18 @@ export default {
       this.page = window_data.page;
     }
 
-    const data = localStorage.getItem('cryptonomicon-list');
+    const tickers_data = localStorage.getItem('cryptonomicon-list');
 
-    if (data) {
-      this.tickers = JSON.parse(data);
+    if (tickers_data) {
+      this.tickers = JSON.parse(tickers_data);
+      this.tickers.forEach(t => {
+        subscribeToTicker(t.name, (price) => {
+          console.log(t.name, price);
+        });
+      });
     }
 
-    setInterval(this.updateTickers, 5000);
+    // setInterval(this.updateTickers, 5000);
 
 
     let coins = await loadCoins();
@@ -298,17 +303,17 @@ export default {
       }
     },
     async updateTickers() {
-      if (!this.tickers.length) {
-        return;
-      }
-
-      const exchange_data = await loadTickers(this.tickers.map(t => t.name));
-
-      for (let ticker of this.tickers) {
-        const price = exchange_data[ticker.name];
-
-        ticker.price = price ?? '-';
-      }
+      // if (!this.tickers.length) {
+      //   return;
+      // }
+      //
+      // const exchange_data = await loadTickers(this.tickers.map(t => t.name));
+      //
+      // for (let ticker of this.tickers) {
+      //   const price = exchange_data[ticker.name];
+      //
+      //   ticker.price = price ?? '-';
+      // }
     },
     add() {
       const name = this.ticker.toUpperCase();
@@ -329,6 +334,12 @@ export default {
       const current_ticker = {name: name, price: '-'};
 
       this.tickers = [...this.tickers, current_ticker];
+
+      this.tickers.forEach(t => {
+        subscribeToTicker(t.name, () => {
+
+        });
+      });
 
       this.error = false;
       this.ticker = '';
