@@ -162,7 +162,7 @@
 </template>
 
 <script>
-import {subscribeToTicker, loadCoins} from './api';
+import {subscribeToTicker, unsubscribeFromTicker, loadCoins} from './api';
 
 export default {
   name: 'App',
@@ -196,8 +196,8 @@ export default {
     if (tickers_data) {
       this.tickers = JSON.parse(tickers_data);
       this.tickers.forEach(t => {
-        subscribeToTicker(t.name, (price) => {
-          console.log(t.name, price);
+        subscribeToTicker(t.name, (new_price) => {
+          this.updateTicker(t.name, new_price);
         });
       });
     }
@@ -302,18 +302,9 @@ export default {
         this.add();
       }
     },
-    async updateTickers() {
-      // if (!this.tickers.length) {
-      //   return;
-      // }
-      //
-      // const exchange_data = await loadTickers(this.tickers.map(t => t.name));
-      //
-      // for (let ticker of this.tickers) {
-      //   const price = exchange_data[ticker.name];
-      //
-      //   ticker.price = price ?? '-';
-      // }
+    updateTicker(ticker_name, price) {
+      const ticker = this.tickers.filter(t => t.name === ticker_name)[0];
+      ticker.price = price;
     },
     add() {
       const name = this.ticker.toUpperCase();
@@ -335,10 +326,8 @@ export default {
 
       this.tickers = [...this.tickers, current_ticker];
 
-      this.tickers.forEach(t => {
-        subscribeToTicker(t.name, () => {
-
-        });
+      subscribeToTicker(current_ticker.name, (new_price) => {
+        this.updateTicker(current_ticker.name, new_price);
       });
 
       this.error = false;
@@ -351,6 +340,8 @@ export default {
       if (this.selected_ticker?.name === item.name) {
         this.selected_ticker = null;
       }
+
+      unsubscribeFromTicker(item.name);
     },
     select(item) {
       this.selected_ticker = item;
