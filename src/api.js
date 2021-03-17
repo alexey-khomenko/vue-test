@@ -15,6 +15,7 @@ const loadTickers = () => {
     fetch(LINK.toString())
         .then(r => r.json())
         .then(rawData => {
+            /*
             const updated_prices = Object.fromEntries(
                 Object.entries(rawData).map(
                     ([key, value]) => [key, value.USD]
@@ -27,12 +28,27 @@ const loadTickers = () => {
                     fn(new_price);
                 }
             }
+            */
+
+            for (let currency in rawData) {
+                if (!rawData.hasOwnProperty(currency)) continue;
+
+                const new_price = rawData[currency]['USD'];
+
+                if (ticker_handlers.has(currency)) {
+                    ticker_handlers.get(currency)(new_price);
+                }
+            }
         });
 };
 
 export const subscribeToTicker = (ticker, cb) => {
+    /*
     const subscribers = ticker_handlers.get(ticker) || [];
     ticker_handlers.set(ticker, [...subscribers, cb]);
+    */
+
+    ticker_handlers.set(ticker, cb);
 }
 
 export const unsubscribeFromTicker = (ticker) => {
@@ -45,5 +61,14 @@ export const loadCoins = async () => {
     const f = await fetch(`https://min-api.cryptocompare.com/data/all/coinlist?summary=true`);
     const r = await f.json();
 
-    return r.Data;
+    if (!('Data' in r)) return;
+
+    let result = [];
+    for (let coin in r.Data) {
+        if (!r.Data.hasOwnProperty(coin)) continue;
+
+        result.push({name: r.Data[coin]['FullName'], symbol: r.Data[coin]['Symbol']});
+    }
+
+    return result;
 };

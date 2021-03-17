@@ -202,13 +202,7 @@ export default {
       });
     }
 
-    // setInterval(this.updateTickers, 5000);
-
-
-    let coins = await loadCoins();
-    for (let coin in coins) {
-      this.coins.push({name: coins[coin]['FullName'], symbol: coins[coin]['Symbol']});
-    }
+    this.coins = await loadCoins();
   },
   computed: {
     hints() {
