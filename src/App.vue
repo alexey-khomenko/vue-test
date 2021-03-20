@@ -202,6 +202,18 @@ export default {
       });
     }
 
+    // синхронизация валют во вкладках
+    window.addEventListener('storage' , (e) => {
+        if (e.key !== 'cryptonomicon-list') return true;
+
+        this.tickers = JSON.parse(e.newValue);
+        this.tickers.forEach(t => {
+          subscribeToTicker(t.name, (new_price) => {
+            this.updateTicker(t.name, new_price);
+          });
+        });
+    });
+
     this.coins = await loadCoins();
   },
   computed: {
