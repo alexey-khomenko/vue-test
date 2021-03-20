@@ -195,7 +195,7 @@ export default {
 
     if (tickers_data) {
       this.tickers = JSON.parse(tickers_data);
-      this.tickers.forEach(t => {
+      this.tickers.forEach((t) => {
         subscribeToTicker(t.name, (new_price) => {
           this.updateTicker(t.name, new_price);
         });
@@ -203,16 +203,23 @@ export default {
     }
 
     // синхронизация валют во вкладках
-    window.addEventListener('storage' , (e) => {
-        if (e.key !== 'cryptonomicon-list') return true;
+    window.addEventListener('storage', (e) => {
+      if (e.key !== 'cryptonomicon-list') return true;
 
-        this.tickers = JSON.parse(e.newValue);
-        this.tickers.forEach(t => {
-          subscribeToTicker(t.name, (new_price) => {
-            this.updateTicker(t.name, new_price);
-          });
+      this.tickers = JSON.parse(e.newValue);
+      this.tickers.forEach((t) => {
+        subscribeToTicker(t.name, (new_price) => {
+          this.updateTicker(t.name, new_price);
         });
+      });
     });
+
+    // выравнивание ширины графика
+    setInterval(() => {
+      this.tickers.filter((t) => t === this.selected_ticker).forEach((t) => {
+        this.graph.push(t.price);
+      });
+    }, 2000);
 
     this.coins = await loadCoins();
   },
@@ -309,8 +316,10 @@ export default {
       }
     },
     updateTicker(ticker_name, price) {
-      const ticker = this.tickers.filter(t => t.name === ticker_name)[0];
-      ticker.price = price;
+      this.tickers.filter(t => t.name === ticker_name).forEach(t => {
+        t.price = price;
+      });
+      this.tickers = [...this.tickers];
     },
     add() {
       const name = this.ticker.toUpperCase();

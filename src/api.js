@@ -1,8 +1,52 @@
-//const API_KEY = '';
-// todo 1:18:00
-
 const ticker_handlers = new Map();
+const queue = [];
 
+const API_KEY = '364fdb45f6b9350786ecaf1cc257574446a0e173c309aeaf154397ace2ed25fc';
+const socket = new WebSocket(`wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`);
+
+const AGGREGATE_INDEX = '5';
+
+socket.addEventListener('message', (e) => {
+    const {TYPE: type, FROMSYMBOL: currency, PRICE: new_price} = JSON.parse(e.data);
+
+    if (type !== AGGREGATE_INDEX || new_price === undefined) return true;
+
+    if (!ticker_handlers.has(currency)) return true;
+
+    ticker_handlers.get(currency)(new_price);
+});
+
+socket.addEventListener("open", () => {
+    while (queue.length) {
+        socket.send(queue.pop());
+    }
+});
+
+function sendToWebSocket(message) {
+    const json_message = JSON.stringify(message);
+
+    if (socket.readyState === WebSocket.OPEN) {
+        socket.send(json_message);
+    } {
+        queue.push(json_message);
+    }
+}
+
+function subscribeToTickerOnWs(ticker) {
+    sendToWebSocket({
+        action: "SubAdd",
+        subs: [`5~CCCAGG~${ticker}~USD`]
+    });
+}
+
+function unsubscribeFromTickerOnWs(ticker) {
+    sendToWebSocket({
+        action: "SubRemove",
+        subs: [`5~CCCAGG~${ticker}~USD`]
+    });
+}
+//----------------------------------------------------------------------------------------------------------------------
+/*
 const loadTickers = async () => {
     if (ticker_handlers.size === 0) {
         return;
@@ -22,41 +66,20 @@ const loadTickers = async () => {
 
         ticker_handlers.get(currency)(new_price);
     }
-    /*
-        fetch(LINK.toString())
-            .then(r => r.json())
-            .then(rawData => {
-                const updated_prices = Object.fromEntries(
-                    Object.entries(rawData).map(
-                        ([key, value]) => [key, value.USD]
-                    )
-                );
-
-                for (let [currency, new_price] of Object.entries(updated_prices)) {
-                    const handlers = ticker_handlers.get(currency) ?? [];
-                    for (let fn of handlers) {
-                        fn(new_price);
-                    }
-                }
-            });
-    */
 };
-
 setInterval(loadTickers, 5000);
-
+*/
+//----------------------------------------------------------------------------------------------------------------------
 export const subscribeToTicker = (ticker, cb) => {
-    /*
-    const subscribers = ticker_handlers.get(ticker) || [];
-    ticker_handlers.set(ticker, [...subscribers, cb]);
-    */
-
     ticker_handlers.set(ticker, cb);
+    subscribeToTickerOnWs(ticker);
 }
 
 export const unsubscribeFromTicker = (ticker) => {
     ticker_handlers.delete(ticker);
+    unsubscribeFromTickerOnWs(ticker);
 }
-
+//----------------------------------------------------------------------------------------------------------------------
 export const loadCoins = async () => {
     const LINK = new URL('https://min-api.cryptocompare.com/data/all/coinlist');
     LINK.searchParams.set('summary', 'true');
@@ -73,14 +96,12 @@ export const loadCoins = async () => {
 
     return result;
 };
-
-
-
 //----------------------------------------------------------------------------------------------------------------------
 let signer = false;
 const self = Date.now();
 const pages = [self];
 const signer_timeout = setTimeout(runDataBroadcasting, 900);
+
 //console.log("I am " + self);
 
 function runDataBroadcasting() {
