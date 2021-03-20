@@ -4,8 +4,6 @@
 const ticker_handlers = new Map();
 
 const loadTickers = async () => {
-    channel.postMessage('Привет другому окну');
-
     if (ticker_handlers.size === 0) {
         return;
     }
@@ -44,6 +42,8 @@ const loadTickers = async () => {
     */
 };
 
+setInterval(loadTickers, 5000);
+
 export const subscribeToTicker = (ticker, cb) => {
     /*
     const subscribers = ticker_handlers.get(ticker) || [];
@@ -55,13 +55,6 @@ export const subscribeToTicker = (ticker, cb) => {
 
 export const unsubscribeFromTicker = (ticker) => {
     ticker_handlers.delete(ticker);
-}
-
-setInterval(loadTickers, 5000);
-
-let channel = new BroadcastChannel('channel1');
-channel.onmessage = function (e) {
-    console.log(e);
 }
 
 export const loadCoins = async () => {
@@ -80,3 +73,57 @@ export const loadCoins = async () => {
 
     return result;
 };
+
+
+
+//----------------------------------------------------------------------------------------------------------------------
+let signer = false;
+const self = Date.now();
+const pages = [self];
+const signer_timeout = setTimeout(runDataBroadcasting, 900);
+//console.log("I am " + self);
+
+function runDataBroadcasting() {
+    signer = true;
+
+    //console.log('I am signer!');
+}
+
+const data_channel = new BroadcastChannel('data');
+data_channel.addEventListener('message', function (e) {
+    console.log(e.data);
+});
+
+const lifecycle = new BroadcastChannel('lifecycle');
+
+lifecycle.addEventListener('message', function (e) {
+    clearTimeout(signer_timeout);
+
+    const {mode, page} = e.data;
+
+    switch (mode) {
+        case 'new':
+            pages.push(page);
+            lifecycle.postMessage({mode: 'old', page: self});
+            break;
+        case 'old':
+            if (pages.indexOf(page) === -1) pages.push(page);
+            break;
+        case 'die':
+            if (pages.indexOf(page) > -1) pages.splice(pages.indexOf(page), 1);
+            break;
+    }
+
+    pages.sort((a, b) => a - b);
+    //console.log(pages);
+
+    if (self !== pages[0] || signer) return true;
+
+    runDataBroadcasting();
+});
+
+lifecycle.postMessage({mode: 'new', page: self});
+
+window.addEventListener('unload', function () {
+    lifecycle.postMessage({mode: 'die', page: self});
+});
