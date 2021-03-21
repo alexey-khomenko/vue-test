@@ -162,7 +162,8 @@
 </template>
 
 <script>
-import {subscribeToTicker, unsubscribeFromTicker, loadCoins} from './api';
+import {subscribeToTicker, unsubscribeFromTicker} from './api';
+import {loadCoins, loadTickers, saveTickers} from './api';
 
 export default {
   name: 'App',
@@ -191,16 +192,13 @@ export default {
       this.page = window_data.page;
     }
 
-    const tickers_data = localStorage.getItem('cryptonomicon-list');
+    this.tickers = loadTickers();
 
-    if (tickers_data) {
-      this.tickers = JSON.parse(tickers_data);
-      this.tickers.forEach((t) => {
-        subscribeToTicker(t.name, (new_price) => {
-          this.updateTicker(t.name, new_price);
-        });
+    this.tickers.forEach((t) => {
+      subscribeToTicker(t.name, (new_price) => {
+        this.updateTicker(t.name, new_price);
       });
-    }
+    });
 
     // синхронизация валют во вкладках
     window.addEventListener('storage', (e) => {
@@ -292,7 +290,7 @@ export default {
       this.graph = [];
     },
     tickers() {
-      localStorage.setItem('cryptonomicon-list', JSON.stringify(this.tickers));
+      saveTickers(this.tickers);
     },
     page_state_options(v) {
       window.history.pushState(
@@ -316,7 +314,7 @@ export default {
       }
     },
     updateTicker(ticker_name, price) {
-      this.tickers.filter(t => t.name === ticker_name).forEach(t => {
+      this.tickers.filter((t) => t.name === ticker_name).forEach((t) => {
         t.price = price;
       });
       this.tickers = [...this.tickers];
@@ -328,11 +326,11 @@ export default {
         return;
       }
 
-      if (!this.coins.find(c => c.symbol === name)) {
+      if (!this.coins.find((c) => c.symbol === name)) {
         return;
       }
 
-      if (this.tickers.find(t => t.name === name)) {
+      if (this.tickers.find((t) => t.name === name)) {
         this.error = true;
         return;
       }
@@ -350,7 +348,7 @@ export default {
       this.filter = '';
     },
     remove(item) {
-      this.tickers = this.tickers.filter(t => t !== item);
+      this.tickers = this.tickers.filter((t) => t !== item);
 
       if (this.selected_ticker?.name === item.name) {
         this.selected_ticker = null;

@@ -96,6 +96,17 @@ export const loadCoins = async () => {
 
     return result;
 };
+
+export const loadTickers = () => {
+    const tickers = localStorage.getItem('cryptonomicon-list');
+    return tickers ? JSON.parse(tickers) : [];
+};
+
+export const saveTickers = (tickers) => {
+    localStorage.setItem('cryptonomicon-list', JSON.stringify(tickers));
+};
+//----------------------------------------------------------------------------------------------------------------------
+
 //----------------------------------------------------------------------------------------------------------------------
 let signer = false;
 const self = Date.now();
