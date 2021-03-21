@@ -13,7 +13,7 @@ socket.addEventListener('message', (e) => {
 
     if (!ticker_handlers.has(currency)) return true;
 
-    ticker_handlers.get(currency)(new_price);
+    ticker_handlers.get(currency)(currency, new_price);
 });
 
 socket.addEventListener("open", () => {
@@ -27,7 +27,8 @@ function sendToWebSocket(message) {
 
     if (socket.readyState === WebSocket.OPEN) {
         socket.send(json_message);
-    } {
+    }
+    {
         queue.push(json_message);
     }
 }
@@ -45,6 +46,7 @@ function unsubscribeFromTickerOnWs(ticker) {
         subs: [`5~CCCAGG~${ticker}~USD`]
     });
 }
+
 //----------------------------------------------------------------------------------------------------------------------
 /*
 const loadTickers = async () => {
@@ -97,7 +99,7 @@ export const loadCoins = async () => {
     return result;
 };
 
-export const loadTickers = () => {
+export const loadCurrencies = () => {
     const tickers = localStorage.getItem('cryptonomicon-list');
     return tickers ? JSON.parse(tickers) : [];
 };
@@ -106,7 +108,37 @@ export const saveTickers = (tickers) => {
     localStorage.setItem('cryptonomicon-list', JSON.stringify(tickers));
 };
 //----------------------------------------------------------------------------------------------------------------------
+export const loadFilter = () => {
+    const window_data = Object.fromEntries(
+        new URL(window.location).searchParams.entries()
+    );
 
+    return window_data.filter ?? '';
+};
+
+export const saveFilter = (f) => {
+    window.history.pushState(
+        null,
+        document.title,
+        `${window.location.pathname}?filter=${f}&page=${loadPage()}`
+    );
+};
+
+export const loadPage = () => {
+    const window_data = Object.fromEntries(
+        new URL(window.location).searchParams.entries()
+    );
+
+    return window_data.page ?? 1;
+};
+
+export const savePage = (p) => {
+    window.history.pushState(
+        null,
+        document.title,
+        `${window.location.pathname}?filter=${loadFilter()}&page=${p}`
+    );
+};
 //----------------------------------------------------------------------------------------------------------------------
 let signer = false;
 const self = Date.now();

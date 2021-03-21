@@ -162,8 +162,9 @@
 </template>
 
 <script>
+import {loadFilter, saveFilter, loadPage, savePage} from './api';
 import {subscribeToTicker, unsubscribeFromTicker} from './api';
-import {loadCoins, loadTickers, saveTickers} from './api';
+import {loadCoins, loadCurrencies, saveTickers} from './api';
 
 export default {
   name: 'App',
@@ -180,37 +181,32 @@ export default {
     };
   },
   async created() {
-    const window_data = Object.fromEntries(
-        new URL(window.location).searchParams.entries()
-    );
-
-    if (window_data.filter) {
-      this.filter = window_data.filter;
-    }
-
-    if (window_data.page) {
-      this.page = window_data.page;
-    }
-
-    this.tickers = loadTickers();
+    this.page = loadPage();
+    this.filter = loadFilter();
+    this.coins = await loadCoins();
+    this.tickers = loadCurrencies();
 
     this.tickers.forEach((t) => {
-      subscribeToTicker(t.name, (new_price) => {
-        this.updateTicker(t.name, new_price);
-      });
+      subscribeToTicker(t.name, this.updateTicker);
     });
 
+    // todo
+    // addCurrency
+    // removeCurrency
+    saveTickers(this.tickers);
+
+    // todo
     // синхронизация валют во вкладках
+    /*
     window.addEventListener('storage', (e) => {
       if (e.key !== 'cryptonomicon-list') return true;
 
       this.tickers = JSON.parse(e.newValue);
       this.tickers.forEach((t) => {
-        subscribeToTicker(t.name, (new_price) => {
-          this.updateTicker(t.name, new_price);
-        });
+        subscribeToTicker(t.name, this.updateTicker);
       });
     });
+    */
 
     // выравнивание ширины графика
     setInterval(() => {
@@ -218,8 +214,6 @@ export default {
         this.graph.push(t.price);
       });
     }, 2000);
-
-    this.coins = await loadCoins();
   },
   computed: {
     hints() {
@@ -270,19 +264,17 @@ export default {
 
       return result;
     },
-    page_state_options() {
-      return {
-        filter: this.filter,
-        page: this.page
-      };
-    }
   },
   watch: {
-    filter() {
+    filter(value) {
       this.page = 1;
+      saveFilter(value);
     },
-    paginated_tickers() {
-      if (this.paginated_tickers.length === 0 && this.page > 1) {
+    page(value) {
+      savePage(value);
+    },
+    paginated_tickers(value) {
+      if (value.length === 0 && this.page > 1) {
         --this.page;
       }
     },
@@ -290,15 +282,9 @@ export default {
       this.graph = [];
     },
     tickers() {
-      saveTickers(this.tickers);
+      // todo
+      // saveTickers(this.tickers);
     },
-    page_state_options(v) {
-      window.history.pushState(
-          null,
-          document.title,
-          `${window.location.pathname}?filter=${v.filter}&page=${v.page}`
-      );
-    }
   },
   methods: {
     formatPrice(price) {
@@ -317,7 +303,8 @@ export default {
       this.tickers.filter((t) => t.name === ticker_name).forEach((t) => {
         t.price = price;
       });
-      this.tickers = [...this.tickers];
+      // todo
+      // this.tickers = [...this.tickers];
     },
     add() {
       const name = this.ticker.toUpperCase();
@@ -339,9 +326,7 @@ export default {
 
       this.tickers = [...this.tickers, current_ticker];
 
-      subscribeToTicker(current_ticker.name, (new_price) => {
-        this.updateTicker(current_ticker.name, new_price);
-      });
+      subscribeToTicker(current_ticker.name, this.updateTicker);
 
       this.error = false;
       this.ticker = '';
