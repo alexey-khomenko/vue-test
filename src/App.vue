@@ -162,10 +162,11 @@
 </template>
 
 <script>
-import {loadFilter, saveFilter, loadPage, savePage} from './api';
-import {subscribeToTicker, unsubscribeFromTicker} from './api';
-import {loadCoins, loadCurrencies, addCurrency, removeCurrency} from './api';
-import {subscribeToCurrencies} from './api';
+import {setCurrencyCallbacks} from './storage';
+import {loadFilterFromStorage, saveFilterToStorage, loadPageFromStorage, savePageToStorage} from './storage';
+import {loadCurrenciesFromStorage, addCurrencyToStorage, removeCurrencyFromStorage} from './storage';
+import {setTickerCallback, subscribeToTicker, unsubscribeFromTicker} from './api';
+import {loadCoinsFromApi} from './api';
 
 export default {
   name: 'App',
@@ -182,16 +183,17 @@ export default {
     };
   },
   async created() {
-    this.page = loadPage();
-    this.filter = loadFilter();
-    this.coins = await loadCoins();
+    this.page = loadPageFromStorage();
+    this.filter = loadFilterFromStorage();
+    this.coins = await loadCoinsFromApi();
 
-    loadCurrencies().forEach((currency) => {
+    setTickerCallback(this.updateTicker);
+    setCurrencyCallbacks(this.add, this.remove);
+
+    loadCurrenciesFromStorage().forEach((currency) => {
       this.tickers.push({name: currency, price: '-'});
-      subscribeToTicker(currency, this.updateTicker);
+      subscribeToTicker(currency);
     });
-
-    subscribeToCurrencies(this.add, this.remove);
 
     // выравнивание ширины графика
     setInterval(() => {
@@ -253,10 +255,10 @@ export default {
   watch: {
     filter(value) {
       this.page = 1;
-      saveFilter(value);
+      saveFilterToStorage(value);
     },
     page(value) {
-      savePage(value);
+      savePageToStorage(value);
     },
     paginated_tickers(value) {
       if (value.length === 0 && this.page > 1) {
@@ -265,10 +267,6 @@ export default {
     },
     selected_ticker() {
       this.graph = [];
-    },
-    tickers() {
-      // todo
-      // saveTickers(this.tickers);
     },
   },
   methods: {
@@ -311,8 +309,8 @@ export default {
 
       this.tickers = [...this.tickers, current_ticker];
 
-      subscribeToTicker(current_ticker.name, this.updateTicker);
-      addCurrency(current_ticker.name);
+      subscribeToTicker(current_ticker.name);
+      addCurrencyToStorage(current_ticker.name);
 
       this.error = false;
       this.ticker = '';
@@ -326,7 +324,7 @@ export default {
       }
 
       unsubscribeFromTicker(ticker_name);
-      removeCurrency(ticker_name);
+      removeCurrencyFromStorage(ticker_name);
     },
     select(ticker) {
       this.selected_ticker = ticker;

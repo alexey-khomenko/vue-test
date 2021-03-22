@@ -1,6 +1,7 @@
-const ticker_handlers = new Map();
+let ticker_handler;
+const tickers = [];
 /*
-const ticker_queue = [];
+const tickers_queue = [];
 
 const API_KEY = '364fdb45f6b9350786ecaf1cc257574446a0e173c309aeaf154397ace2ed25fc';
 const socket = new WebSocket(`wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`);
@@ -12,14 +13,14 @@ socket.addEventListener('message', (e) => {
 
     if (type !== AGGREGATE_INDEX || new_price === undefined) return true;
 
-    if (!ticker_handlers.has(currency)) return true;
+    if (tickers.indexOf(currency) === -1) return true;
 
-    ticker_handlers.get(currency)(currency, new_price);
+    ticker_handler(currency, new_price);
 });
 
-socket.addEventListener("open", () => {
-    while (ticker_queue.length) {
-        socket.send(ticker_queue.pop());
+socket.addEventListener('open', () => {
+    while (tickers_queue.length) {
+        socket.send(tickers_queue.pop());
     }
 });
 
@@ -28,36 +29,35 @@ function sendToWebSocket(message) {
 
     if (socket.readyState === WebSocket.OPEN) {
         socket.send(json_message);
-    }
-    {
-        ticker_queue.push(json_message);
+    } else {
+        tickers_queue.push(json_message);
     }
 }
 
 function subscribeToTickerOnWs(ticker) {
     sendToWebSocket({
-        action: "SubAdd",
+        action: 'SubAdd',
         subs: [`5~CCCAGG~${ticker}~USD`]
     });
 }
 
 function unsubscribeFromTickerOnWs(ticker) {
     sendToWebSocket({
-        action: "SubRemove",
+        action: 'SubRemove',
         subs: [`5~CCCAGG~${ticker}~USD`]
     });
 }
 */
 //----------------------------------------------------------------------------------------------------------------------
-/*
+
 const loadTickers = async () => {
-    if (ticker_handlers.size === 0) {
+    if (!tickers.length) {
         return;
     }
 
     const LINK = new URL('https://min-api.cryptocompare.com/data/pricemulti');
     LINK.searchParams.set('tsyms', 'USD');
-    LINK.searchParams.set('fsyms', [...ticker_handlers.keys()].join(','));
+    LINK.searchParams.set('fsyms', [...tickers].join(','));
 
     const f = await fetch(LINK.toString());
     const r = await f.json();
@@ -65,25 +65,31 @@ const loadTickers = async () => {
     for (let currency in r) {
         const new_price = r[currency]['USD'];
 
-        if (!ticker_handlers.has(currency)) continue;
+        if (tickers.indexOf(currency) === -1) continue;
 
-        ticker_handlers.get(currency)(new_price);
+        ticker_handler(currency, new_price);
     }
 };
 setInterval(loadTickers, 5000);
-*/
+
 //----------------------------------------------------------------------------------------------------------------------
-export const subscribeToTicker = (ticker, cb) => {
-    ticker_handlers.set(ticker, cb);
-    //subscribeToTickerOnWs(ticker);
+export const setTickerCallback = (cb) => {
+    ticker_handler = cb;
+}
+
+export const subscribeToTicker = (ticker) => {
+    if (tickers.indexOf(ticker) > -1) return;
+    tickers.push(ticker);
+//    subscribeToTickerOnWs(ticker);
 }
 
 export const unsubscribeFromTicker = (ticker) => {
-    ticker_handlers.delete(ticker);
-    //unsubscribeFromTickerOnWs(ticker);
+    if (tickers.indexOf(ticker) === -1) return;
+    tickers.splice(tickers.indexOf(ticker), 1);
+//    unsubscribeFromTickerOnWs(ticker);
 }
 //----------------------------------------------------------------------------------------------------------------------
-export const loadCoins = async () => {
+export const loadCoinsFromApi = async () => {
     const LINK = new URL('https://min-api.cryptocompare.com/data/all/coinlist');
     LINK.searchParams.set('summary', 'true');
 
@@ -99,88 +105,25 @@ export const loadCoins = async () => {
 
     return result;
 };
-
-export const loadCurrencies = () => {
-    const tickers = localStorage.getItem('cryptonomicon-list');
-    return tickers ? JSON.parse(tickers) : [];
-};
-
-export const addCurrency = (t) => {
-    const tickers = loadCurrencies();
-    if (tickers.indexOf(t) > -1) return;
-
-    tickers.push(t);
-    localStorage.setItem('cryptonomicon-list', JSON.stringify(tickers));
-    currencies_channel.postMessage({mode: 'add', name: t});
-};
-
-export const removeCurrency = (t) => {
-    const tickers = loadCurrencies();
-    if (tickers.indexOf(t) === -1) return;
-
-    tickers.splice(tickers.indexOf(t), 1);
-    localStorage.setItem('cryptonomicon-list', JSON.stringify(tickers));
-    currencies_channel.postMessage({mode: 'remove', name: t});
-};
-//----------------------------------------------------------------------------------------------------------------------
-const currency_handlers = new Map();
-
-export const subscribeToCurrencies = (add, remove) => {
-    currency_handlers.set('add', add);
-    currency_handlers.set('remove', remove);
-}
-
-const currencies_channel = new BroadcastChannel('currencies_channel');
-currencies_channel.addEventListener('message', function (e) {
-    currency_handlers.get(e.data.mode)(e.data.name);
-});
-//----------------------------------------------------------------------------------------------------------------------
-export const loadFilter = () => {
-    const window_data = Object.fromEntries(
-        new URL(window.location).searchParams.entries()
-    );
-
-    return window_data.filter ?? '';
-};
-
-export const saveFilter = (f) => {
-    window.history.pushState(
-        null,
-        document.title,
-        `${window.location.pathname}?filter=${f}&page=${loadPage()}`
-    );
-};
-
-export const loadPage = () => {
-    const window_data = Object.fromEntries(
-        new URL(window.location).searchParams.entries()
-    );
-
-    return window_data.page ?? 1;
-};
-
-export const savePage = (p) => {
-    window.history.pushState(
-        null,
-        document.title,
-        `${window.location.pathname}?filter=${loadFilter()}&page=${p}`
-    );
-};
 //----------------------------------------------------------------------------------------------------------------------
 let signer = false;
 const self = Date.now();
 const tabs = [self];
 const signer_timeout = setTimeout(runDataBroadcasting, 900);
 
-//console.log("I am " + self);
+console.log('I am ' + self);
 
 function runDataBroadcasting() {
     signer = true;
 
-    //console.log('I am signer!');
+    console.log('I am signer!');
+
+    // setInterval(() => {
+    //     data_channel.postMessage('broadcasting');
+    // }, 1000);
 }
 
-const data_channel = new BroadcastChannel('data');
+const data_channel = new BroadcastChannel('data_channel');
 data_channel.addEventListener('message', function (e) {
     console.log(e.data);
 });
@@ -206,7 +149,7 @@ lifecycle.addEventListener('message', function (e) {
     }
 
     tabs.sort((a, b) => a - b);
-    //console.log(tabs);
+    console.log(tabs);
 
     if (self !== tabs[0] || signer) return true;
 
