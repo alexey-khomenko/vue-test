@@ -33,7 +33,7 @@
               <span
                   class="inline-flex items-center px-2 m-1 rounded-md text-xs font-medium bg-gray-300 text-gray-800 cursor-pointer"
                   v-for="(h, idx) in hints" :key="idx"
-                  @click="ticker = h; add()"
+                  @click="ticker = h; add(ticker)"
               >
                 {{ h }}
               </span>
@@ -46,7 +46,7 @@
         </div>
         <button type="button"
                 class="my-4 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                @click="add"
+                @click="add(ticker)"
         >
           <!-- Heroicon name: solid/mail -->
           <svg fill="#ffffff"
@@ -102,7 +102,7 @@
               </dd>
             </div>
             <div class="w-full border-t border-gray-200"></div>
-            <button @click="remove(t)"
+            <button @click="remove(t.name)"
                     class="flex items-center justify-center font-medium w-full bg-gray-100 px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600 hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none">
               <svg class="h-5 w-5"
                    xmlns="http://www.w3.org/2000/svg"
@@ -164,7 +164,8 @@
 <script>
 import {loadFilter, saveFilter, loadPage, savePage} from './api';
 import {subscribeToTicker, unsubscribeFromTicker} from './api';
-import {loadCoins, loadCurrencies, saveTickers} from './api';
+import {loadCoins, loadCurrencies, addCurrency, removeCurrency} from './api';
+import {subscribeToCurrencies} from './api';
 
 export default {
   name: 'App',
@@ -184,29 +185,13 @@ export default {
     this.page = loadPage();
     this.filter = loadFilter();
     this.coins = await loadCoins();
-    this.tickers = loadCurrencies();
 
-    this.tickers.forEach((t) => {
-      subscribeToTicker(t.name, this.updateTicker);
+    loadCurrencies().forEach((currency) => {
+      this.tickers.push({name: currency, price: '-'});
+      subscribeToTicker(currency, this.updateTicker);
     });
 
-    // todo
-    // addCurrency
-    // removeCurrency
-    saveTickers(this.tickers);
-
-    // todo
-    // синхронизация валют во вкладках
-    /*
-    window.addEventListener('storage', (e) => {
-      if (e.key !== 'cryptonomicon-list') return true;
-
-      this.tickers = JSON.parse(e.newValue);
-      this.tickers.forEach((t) => {
-        subscribeToTicker(t.name, this.updateTicker);
-      });
-    });
-    */
+    subscribeToCurrencies(this.add, this.remove);
 
     // выравнивание ширины графика
     setInterval(() => {
@@ -296,7 +281,7 @@ export default {
     activity(event) {
       this.error = false;
       if (event.key === 'Enter') {
-        this.add();
+        this.add(this.ticker);
       }
     },
     updateTicker(ticker_name, price) {
@@ -306,8 +291,8 @@ export default {
       // todo
       // this.tickers = [...this.tickers];
     },
-    add() {
-      const name = this.ticker.toUpperCase();
+    add(ticker_name) {
+      const name = ticker_name.toUpperCase();
 
       if (name.length === 0) {
         return;
@@ -327,22 +312,24 @@ export default {
       this.tickers = [...this.tickers, current_ticker];
 
       subscribeToTicker(current_ticker.name, this.updateTicker);
+      addCurrency(current_ticker.name);
 
       this.error = false;
       this.ticker = '';
       this.filter = '';
     },
-    remove(item) {
-      this.tickers = this.tickers.filter((t) => t !== item);
+    remove(ticker_name) {
+      this.tickers = this.tickers.filter((t) => t.name !== ticker_name);
 
-      if (this.selected_ticker?.name === item.name) {
+      if (this.selected_ticker?.name === ticker_name) {
         this.selected_ticker = null;
       }
 
-      unsubscribeFromTicker(item.name);
+      unsubscribeFromTicker(ticker_name);
+      removeCurrency(ticker_name);
     },
-    select(item) {
-      this.selected_ticker = item;
+    select(ticker) {
+      this.selected_ticker = ticker;
     }
   }
 }

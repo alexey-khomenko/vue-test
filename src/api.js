@@ -1,5 +1,6 @@
 const ticker_handlers = new Map();
-const queue = [];
+/*
+const ticker_queue = [];
 
 const API_KEY = '364fdb45f6b9350786ecaf1cc257574446a0e173c309aeaf154397ace2ed25fc';
 const socket = new WebSocket(`wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`);
@@ -17,8 +18,8 @@ socket.addEventListener('message', (e) => {
 });
 
 socket.addEventListener("open", () => {
-    while (queue.length) {
-        socket.send(queue.pop());
+    while (ticker_queue.length) {
+        socket.send(ticker_queue.pop());
     }
 });
 
@@ -29,7 +30,7 @@ function sendToWebSocket(message) {
         socket.send(json_message);
     }
     {
-        queue.push(json_message);
+        ticker_queue.push(json_message);
     }
 }
 
@@ -46,7 +47,7 @@ function unsubscribeFromTickerOnWs(ticker) {
         subs: [`5~CCCAGG~${ticker}~USD`]
     });
 }
-
+*/
 //----------------------------------------------------------------------------------------------------------------------
 /*
 const loadTickers = async () => {
@@ -74,12 +75,12 @@ setInterval(loadTickers, 5000);
 //----------------------------------------------------------------------------------------------------------------------
 export const subscribeToTicker = (ticker, cb) => {
     ticker_handlers.set(ticker, cb);
-    subscribeToTickerOnWs(ticker);
+    //subscribeToTickerOnWs(ticker);
 }
 
 export const unsubscribeFromTicker = (ticker) => {
     ticker_handlers.delete(ticker);
-    unsubscribeFromTickerOnWs(ticker);
+    //unsubscribeFromTickerOnWs(ticker);
 }
 //----------------------------------------------------------------------------------------------------------------------
 export const loadCoins = async () => {
@@ -104,9 +105,35 @@ export const loadCurrencies = () => {
     return tickers ? JSON.parse(tickers) : [];
 };
 
-export const saveTickers = (tickers) => {
+export const addCurrency = (t) => {
+    const tickers = loadCurrencies();
+    if (tickers.indexOf(t) > -1) return;
+
+    tickers.push(t);
     localStorage.setItem('cryptonomicon-list', JSON.stringify(tickers));
+    currencies_channel.postMessage({mode: 'add', name: t});
 };
+
+export const removeCurrency = (t) => {
+    const tickers = loadCurrencies();
+    if (tickers.indexOf(t) === -1) return;
+
+    tickers.splice(tickers.indexOf(t), 1);
+    localStorage.setItem('cryptonomicon-list', JSON.stringify(tickers));
+    currencies_channel.postMessage({mode: 'remove', name: t});
+};
+//----------------------------------------------------------------------------------------------------------------------
+const currency_handlers = new Map();
+
+export const subscribeToCurrencies = (add, remove) => {
+    currency_handlers.set('add', add);
+    currency_handlers.set('remove', remove);
+}
+
+const currencies_channel = new BroadcastChannel('currencies_channel');
+currencies_channel.addEventListener('message', function (e) {
+    currency_handlers.get(e.data.mode)(e.data.name);
+});
 //----------------------------------------------------------------------------------------------------------------------
 export const loadFilter = () => {
     const window_data = Object.fromEntries(
@@ -142,7 +169,7 @@ export const savePage = (p) => {
 //----------------------------------------------------------------------------------------------------------------------
 let signer = false;
 const self = Date.now();
-const pages = [self];
+const tabs = [self];
 const signer_timeout = setTimeout(runDataBroadcasting, 900);
 
 //console.log("I am " + self);
@@ -163,31 +190,31 @@ const lifecycle = new BroadcastChannel('lifecycle');
 lifecycle.addEventListener('message', function (e) {
     clearTimeout(signer_timeout);
 
-    const {mode, page} = e.data;
+    const {mode, tab} = e.data;
 
     switch (mode) {
         case 'new':
-            pages.push(page);
-            lifecycle.postMessage({mode: 'old', page: self});
+            tabs.push(tab);
+            lifecycle.postMessage({mode: 'old', tab: self});
             break;
         case 'old':
-            if (pages.indexOf(page) === -1) pages.push(page);
+            if (tabs.indexOf(tab) === -1) tabs.push(tab);
             break;
         case 'die':
-            if (pages.indexOf(page) > -1) pages.splice(pages.indexOf(page), 1);
+            if (tabs.indexOf(tab) > -1) tabs.splice(tabs.indexOf(tab), 1);
             break;
     }
 
-    pages.sort((a, b) => a - b);
-    //console.log(pages);
+    tabs.sort((a, b) => a - b);
+    //console.log(tabs);
 
-    if (self !== pages[0] || signer) return true;
+    if (self !== tabs[0] || signer) return true;
 
     runDataBroadcasting();
 });
 
-lifecycle.postMessage({mode: 'new', page: self});
+lifecycle.postMessage({mode: 'new', tab: self});
 
 window.addEventListener('unload', function () {
-    lifecycle.postMessage({mode: 'die', page: self});
+    lifecycle.postMessage({mode: 'die', tab: self});
 });
