@@ -24,7 +24,7 @@ export const removeCurrencyFromStorage = (c) => {
 export const setCurrencyCallbacks = (add, remove) => {
     currency_handlers.set('add', add);
     currency_handlers.set('remove', remove);
-}
+};
 const currency_handlers = new Map();
 const currencies_channel = new BroadcastChannel('currencies_channel');
 currencies_channel.addEventListener('message', function (e) {
@@ -33,7 +33,7 @@ currencies_channel.addEventListener('message', function (e) {
 //----------------------------------------------------------------------------------------------------------------------
 export const loadFilterFromStorage = () => {
     const window_data = Object.fromEntries(
-        new URL(window.location).searchParams.entries()
+        new URL(window.location).searchParams.entries(),
     );
 
     return window_data.filter ?? '';
@@ -43,13 +43,13 @@ export const saveFilterToStorage = (f) => {
     window.history.pushState(
         null,
         document.title,
-        `${window.location.pathname}?filter=${f}&page=${loadPageFromStorage()}`
+        `${window.location.pathname}?filter=${f}&page=${loadPageFromStorage()}`,
     );
 };
 
 export const loadPageFromStorage = () => {
     const window_data = Object.fromEntries(
-        new URL(window.location).searchParams.entries()
+        new URL(window.location).searchParams.entries(),
     );
 
     return window_data.page ?? 1;
@@ -59,6 +59,6 @@ export const savePageToStorage = (p) => {
     window.history.pushState(
         null,
         document.title,
-        `${window.location.pathname}?filter=${loadFilterFromStorage()}&page=${p}`
+        `${window.location.pathname}?filter=${loadFilterFromStorage()}&page=${p}`,
     );
 };

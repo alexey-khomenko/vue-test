@@ -8,25 +8,25 @@ export const setTickerCallback = (cb) => {
         const {c: currency, n: new_price} = e.data;
         ticker_handler(currency, new_price);
     });
-}
+};
 
 export const subscribeToTicker = (ticker) => {
     if (tickers.indexOf(ticker) > -1) return;
     tickers.push(ticker);
 
     document.dispatchEvent(new CustomEvent('subscribeToTickerOnWs', {
-        detail: ticker
+        detail: ticker,
     }));
-}
+};
 
 export const unsubscribeFromTicker = (ticker) => {
     if (tickers.indexOf(ticker) === -1) return;
     tickers.splice(tickers.indexOf(ticker), 1);
 
     document.dispatchEvent(new CustomEvent('unsubscribeFromTickerOnWs', {
-        detail: ticker
+        detail: ticker,
     }));
-}
+};
 //----------------------------------------------------------------------------------------------------------------------
 export const loadCoinsFromApi = async () => {
     const LINK = new URL('https://min-api.cryptocompare.com/data/all/coinlist');
@@ -110,7 +110,7 @@ function runDataBroadcasting() {
         while (tickers_queue.length) {
             sendToWebSocket({
                 action: 'SubAdd',
-                subs: [`5~CCCAGG~${tickers_queue.pop()}~USD`]
+                subs: [`5~CCCAGG~${tickers_queue.pop()}~USD`],
             });
         }
     });
@@ -118,14 +118,14 @@ function runDataBroadcasting() {
     document.addEventListener('subscribeToTickerOnWs', function (e) {
         sendToWebSocket({
             action: 'SubAdd',
-            subs: [`5~CCCAGG~${e.detail}~USD`]
+            subs: [`5~CCCAGG~${e.detail}~USD`],
         });
     });
 
     document.addEventListener('unsubscribeFromTickerOnWs', function (e) {
         sendToWebSocket({
             action: 'SubRemove',
-            subs: [`5~CCCAGG~${e.detail}~USD`]
+            subs: [`5~CCCAGG~${e.detail}~USD`],
         });
     });
 
