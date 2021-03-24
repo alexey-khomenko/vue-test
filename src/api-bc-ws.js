@@ -4,33 +4,28 @@ const tickers = [];
 export const setTickerCallback = (cb) => {
     ticker_handler = cb;
 
-    // data_channel.addEventListener('message', function (e) {
-    //     const {c: currency, n: new_price} = e.data;
-    //     ticker_handler(currency, new_price);
-    // });
-    worker.port.addEventListener('message', (e) => {
+    data_channel.addEventListener('message', function (e) {
         const {c: currency, n: new_price} = e.data;
         ticker_handler(currency, new_price);
-    }, false);
+    });
 };
 
 export const subscribeToTicker = (ticker) => {
     if (tickers.indexOf(ticker) > -1) return;
     tickers.push(ticker);
 
-    // document.dispatchEvent(new CustomEvent('subscribeToTickerOnWs', {
-    //     detail: ticker,
-    // }));
-    worker.port.postMessage(tickers);
+    document.dispatchEvent(new CustomEvent('subscribeToTickerOnWs', {
+        detail: ticker,
+    }));
 };
 
 export const unsubscribeFromTicker = (ticker) => {
     if (tickers.indexOf(ticker) === -1) return;
     tickers.splice(tickers.indexOf(ticker), 1);
 
-    // document.dispatchEvent(new CustomEvent('unsubscribeFromTickerOnWs', {
-    //     detail: ticker,
-    // }));
+    document.dispatchEvent(new CustomEvent('unsubscribeFromTickerOnWs', {
+        detail: ticker,
+    }));
 };
 //----------------------------------------------------------------------------------------------------------------------
 export const loadCoinsFromApi = async () => {
@@ -50,16 +45,13 @@ export const loadCoinsFromApi = async () => {
     return result;
 };
 //----------------------------------------------------------------------------------------------------------------------
-let worker = new SharedWorker('sw.js');
-worker.port.start();
-//----------------------------------------------------------------------------------------------------------------------
 let signer = false;
 const self = Date.now();
 const tabs = [self];
 const signer_timeout = setTimeout(runDataBroadcasting, 900);
-//const data_channel = new BroadcastChannel('data_channel');
+const data_channel = new BroadcastChannel('data_channel');
 const lifecycle = new BroadcastChannel('lifecycle');
-// console.log(self);
+console.log(self);
 
 lifecycle.addEventListener('message', function (e) {
     clearTimeout(signer_timeout);
@@ -80,7 +72,7 @@ lifecycle.addEventListener('message', function (e) {
     }
 
     tabs.sort((a, b) => a - b);
-    // console.log(tabs);
+    console.log(tabs);
 
     if (self !== tabs[0] || signer) return true;
 
@@ -95,8 +87,8 @@ window.addEventListener('unload', function () {
 
 function runDataBroadcasting() {
     signer = true;
-    // console.log('runDataBroadcasting');
-/*
+    console.log('runDataBroadcasting');
+
     const tickers_queue = [...tickers];
 
     const API_KEY = '364fdb45f6b9350786ecaf1cc257574446a0e173c309aeaf154397ace2ed25fc';
@@ -147,30 +139,4 @@ function runDataBroadcasting() {
             tickers_queue.push(json_message);
         }
     }
-*/
-    //------------------------------------------------------------------------------------------------------------------
-/*
-    const loadTickers = async () => {
-        if (!tickers.length) {
-            return;
-        }
-
-        const LINK = new URL('https://min-api.cryptocompare.com/data/pricemulti');
-        LINK.searchParams.set('tsyms', 'USD');
-        LINK.searchParams.set('fsyms', [...tickers].join(','));
-
-        const f = await fetch(LINK.toString());
-        const r = await f.json();
-
-        for (let currency in r) {
-            const new_price = r[currency]['USD'];
-
-            if (tickers.indexOf(currency) === -1) continue;
-
-            ticker_handler(currency, new_price);
-            data_channel.postMessage({c: currency, n: new_price});
-        }
-    };
-    setInterval(loadTickers, 5000);
-*/
 }
