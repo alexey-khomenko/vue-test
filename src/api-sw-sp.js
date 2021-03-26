@@ -3,29 +3,23 @@ const tickers = [];
 //----------------------------------------------------------------------------------------------------------------------
 export const setTickerCallback = (cb) => {
     ticker_handler = cb;
-    console.log(ticker_handler);
 
     worker.port.addEventListener('message', (e) => {
-        // const {c: currency, n: new_price} = e.data;
-        // ticker_handler(currency, new_price);
-        console.log(e.data);
+        const {c: currency, n: new_price} = e.data;
+        ticker_handler(currency, new_price);
     }, false);
 };
 
 export const subscribeToTicker = (ticker) => {
     if (tickers.indexOf(ticker) > -1) return;
     tickers.push(ticker);
-    // console.log('subscribeToTicker');
-    // worker.port.postMessage(tickers);
-    worker.port.postMessage('start ' + Date.now());
-    worker.port.postMessage('start');
+    worker.port.postMessage({mode: 'subscribeToTicker', ticker: ticker});
 };
 
 export const unsubscribeFromTicker = (ticker) => {
     if (tickers.indexOf(ticker) === -1) return;
     tickers.splice(tickers.indexOf(ticker), 1);
-    // console.log('unsubscribeFromTicker');
-    // worker.port.postMessage(tickers);
+    worker.port.postMessage({mode: 'unsubscribeFromTicker', ticker: ticker});
 };
 //----------------------------------------------------------------------------------------------------------------------
 export const loadCoinsFromApi = async () => {
@@ -47,3 +41,4 @@ export const loadCoinsFromApi = async () => {
 //----------------------------------------------------------------------------------------------------------------------
 const worker = new SharedWorker('sw.js');
 worker.port.start();
+worker.port.postMessage('start');
