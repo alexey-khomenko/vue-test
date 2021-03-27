@@ -39,6 +39,6 @@ export const loadCoinsFromApi = async () => {
     return result;
 };
 //----------------------------------------------------------------------------------------------------------------------
-const worker = new SharedWorker('sw-sp.js');
+const worker = new SharedWorker('sw-ws.js');
 worker.port.start();
 worker.port.postMessage('start');
