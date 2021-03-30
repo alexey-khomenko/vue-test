@@ -165,8 +165,8 @@
 import {setCurrencyCallbacks} from './storage';
 import {loadFilterFromStorage, saveFilterToStorage, loadPageFromStorage, savePageToStorage} from './storage';
 import {loadCurrenciesFromStorage, addCurrencyToStorage, removeCurrencyFromStorage} from './storage';
-import {setTickerCallback, subscribeToTicker, unsubscribeFromTicker} from './api-sw-ws';
-import {loadCoinsFromApi} from './api-sw-ws';
+import {setTickerCallback, subscribeToTicker, unsubscribeFromTicker} from './api-bc-sp';
+import {loadCoinsFromApi} from './api-bc-sp';
 
 export default {
   name: 'App',
