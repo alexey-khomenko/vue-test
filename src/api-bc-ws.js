@@ -1,5 +1,8 @@
+import {createNanoEvents} from 'nanoevents';
+
 let ticker_handler;
 const tickers = [];
+const emitter = createNanoEvents();
 //----------------------------------------------------------------------------------------------------------------------
 export const setTickerCallback = (cb) => {
     ticker_handler = cb;
@@ -14,35 +17,14 @@ export const subscribeToTicker = (ticker) => {
     if (tickers.indexOf(ticker) > -1) return;
     tickers.push(ticker);
 
-    document.dispatchEvent(new CustomEvent('subscribeToTickerOnWs', {
-        detail: ticker,
-    }));
+    emitter.emit('subscribeToTickerOnWs', ticker);
 };
 
 export const unsubscribeFromTicker = (ticker) => {
     if (tickers.indexOf(ticker) === -1) return;
     tickers.splice(tickers.indexOf(ticker), 1);
 
-    document.dispatchEvent(new CustomEvent('unsubscribeFromTickerOnWs', {
-        detail: ticker,
-    }));
-};
-//----------------------------------------------------------------------------------------------------------------------
-export const loadCoinsFromApi = async () => {
-    const LINK = new URL('https://min-api.cryptocompare.com/data/all/coinlist');
-    LINK.searchParams.set('summary', 'true');
-
-    const f = await fetch(LINK.toString());
-    const r = await f.json();
-
-    if (!('Data' in r)) return;
-
-    let result = [];
-    for (let coin in r.Data) {
-        result.push({name: r.Data[coin]['FullName'], symbol: r.Data[coin]['Symbol']});
-    }
-
-    return result;
+    emitter.emit('unsubscribeFromTickerOnWs', ticker);
 };
 //----------------------------------------------------------------------------------------------------------------------
 let signer = false;
@@ -116,17 +98,17 @@ function runDataBroadcasting() {
         }
     });
 
-    document.addEventListener('subscribeToTickerOnWs', function (e) {
+    emitter.on('subscribeToTickerOnWs', (ticker) => {
         sendToWebSocket({
             action: 'SubAdd',
-            subs: [`5~CCCAGG~${e.detail}~USD`],
+            subs: [`5~CCCAGG~${ticker}~USD`],
         });
     });
 
-    document.addEventListener('unsubscribeFromTickerOnWs', function (e) {
+    emitter.on('unsubscribeFromTickerOnWs', (ticker) => {
         sendToWebSocket({
             action: 'SubRemove',
-            subs: [`5~CCCAGG~${e.detail}~USD`],
+            subs: [`5~CCCAGG~${ticker}~USD`],
         });
     });
 

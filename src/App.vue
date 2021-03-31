@@ -165,8 +165,8 @@
 import {setCurrencyCallbacks} from './storage';
 import {loadFilterFromStorage, saveFilterToStorage, loadPageFromStorage, savePageToStorage} from './storage';
 import {loadCurrenciesFromStorage, addCurrencyToStorage, removeCurrencyFromStorage} from './storage';
-import {setTickerCallback, subscribeToTicker, unsubscribeFromTicker} from './api-bc-sp';
-import {loadCoinsFromApi} from './api-bc-sp';
+import {setTickerCallback, subscribeToTicker, unsubscribeFromTicker} from './api-bc-ws';
+import {loadCoinsFromApi} from './api';
 
 export default {
   name: 'App',
@@ -286,8 +286,6 @@ export default {
       this.tickers.filter((t) => t.name === ticker_name).forEach((t) => {
         t.price = price;
       });
-      // todo
-      // this.tickers = [...this.tickers];
     },
     add(ticker_name) {
       const name = ticker_name.toUpperCase();
