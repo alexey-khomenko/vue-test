@@ -1,6 +1,3 @@
-import {createNanoEvents} from 'nanoevents';
-
-const emitter = createNanoEvents();
 let connected = false;
 let tickers = [];
 self.addEventListener('connect', (e) => {
@@ -26,7 +23,9 @@ self.addEventListener('connect', (e) => {
 
                         if (tickers.indexOf(currency) === -1) continue;
 
-                        emitter.emit('interval', currency, new_price);
+                        self.dispatchEvent(new CustomEvent('interval', {
+                            detail: {c: currency, n: new_price},
+                        }));
                     }
                 };
                 setInterval(loadTickers, 5000);
@@ -39,7 +38,7 @@ self.addEventListener('connect', (e) => {
                 tickers.push(ticker);
             }
 
-            if (ev.data.mode === 'unsubscribeFromTicker') {
+            if (mode === 'unsubscribeFromTicker') {
                 if (tickers.indexOf(ticker) === -1) return;
                 tickers.splice(tickers.indexOf(ticker), 1);
             }
@@ -47,7 +46,7 @@ self.addEventListener('connect', (e) => {
     }, false);
     e.source.start();
 
-    emitter.on('interval', (currency, new_price) => {
-        e.source.postMessage({c: currency, n: new_price});
+    self.addEventListener('interval', function (ev) {
+        e.source.postMessage(ev.detail);
     });
 }, false);

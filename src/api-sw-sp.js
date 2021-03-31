@@ -22,6 +22,6 @@ export const unsubscribeFromTicker = (ticker) => {
     worker.port.postMessage({mode: 'unsubscribeFromTicker', ticker: ticker});
 };
 //----------------------------------------------------------------------------------------------------------------------
-const worker = new SharedWorker('sw-sp.js');
+const worker = new SharedWorker('/sw-sp.js');
 worker.port.start();
 worker.port.postMessage('start');

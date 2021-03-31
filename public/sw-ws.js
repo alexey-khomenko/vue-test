@@ -1,6 +1,3 @@
-import {createNanoEvents} from 'nanoevents';
-
-const emitter = createNanoEvents();
 let connected = false;
 self.addEventListener('connect', (e) => {
     e.source.addEventListener('message', (ev) => {
@@ -20,7 +17,9 @@ self.addEventListener('connect', (e) => {
 
                     if (type !== AGGREGATE_INDEX || new_price === undefined) return true;
 
-                    emitter.emit('interval', currency, new_price);
+                    self.dispatchEvent(new CustomEvent('interval', {
+                        detail: {c: currency, n: new_price},
+                    }));
                 });
 
                 socket.addEventListener('open', () => {
@@ -32,8 +31,8 @@ self.addEventListener('connect', (e) => {
                     }
                 });
 
-                emitter.on('sendToWebSocket', (message) => {
-                    sendToWebSocket(message);
+                self.addEventListener('sendToWebSocket', (e) => {
+                    sendToWebSocket(e.detail);
                 });
 
                 function sendToWebSocket(message) {
@@ -50,23 +49,27 @@ self.addEventListener('connect', (e) => {
             const {mode, ticker} = ev.data;
 
             if (mode === 'subscribeToTicker') {
-                emitter.emit('sendToWebSocket', {
-                    action: 'SubAdd',
-                    subs: [`5~CCCAGG~${ticker}~USD`],
-                });
+                self.dispatchEvent(new CustomEvent('sendToWebSocket', {
+                    detail: {
+                        action: 'SubAdd',
+                        subs: [`5~CCCAGG~${ticker}~USD`],
+                    },
+                }));
             }
 
-            if (ev.data.mode === 'unsubscribeFromTicker') {
-                emitter.emit('sendToWebSocket', {
-                    action: 'SubRemove',
-                    subs: [`5~CCCAGG~${ticker}~USD`],
-                });
+            if (mode === 'unsubscribeFromTicker') {
+                self.dispatchEvent(new CustomEvent('sendToWebSocket', {
+                    detail: {
+                        action: 'SubRemove',
+                        subs: [`5~CCCAGG~${ticker}~USD`],
+                    },
+                }));
             }
         }
     }, false);
     e.source.start();
 
-    emitter.on('interval', (currency, new_price) => {
-        e.source.postMessage({c: currency, n: new_price});
+    self.addEventListener('interval', function (ev) {
+        e.source.postMessage(ev.detail);
     });
 }, false);
