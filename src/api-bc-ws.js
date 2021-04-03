@@ -33,7 +33,7 @@ const tabs = [self];
 const signer_timeout = setTimeout(runDataBroadcasting, 900);
 const data_channel = new BroadcastChannel('data_channel');
 const lifecycle = new BroadcastChannel('lifecycle');
-console.log(self);
+//console.log(self);
 
 lifecycle.addEventListener('message', function (e) {
     clearTimeout(signer_timeout);
@@ -54,7 +54,7 @@ lifecycle.addEventListener('message', function (e) {
     }
 
     tabs.sort((a, b) => a - b);
-    console.log(tabs);
+    //console.log(tabs);
 
     if (self !== tabs[0] || signer) return true;
 
@@ -69,21 +69,66 @@ window.addEventListener('unload', function () {
 
 function runDataBroadcasting() {
     signer = true;
-    console.log('runDataBroadcasting');
+    //console.log('runDataBroadcasting');
 
-    const tickers_queue = [...tickers];
+    const tickers_queue = ['BTC', ...tickers];
+    const btc_tickers = new Map();
+    let btc_price;
 
     const API_KEY = '364fdb45f6b9350786ecaf1cc257574446a0e173c309aeaf154397ace2ed25fc';
     const socket = new WebSocket(`wss://streamer.cryptocompare.com/v2?api_key=${API_KEY}`);
 
+    const PREFIX = '5~CCCAGG';
     const AGGREGATE_INDEX = '5';
+    const INVALID_SUB = '500';
 
     socket.addEventListener('message', (e) => {
-        const {TYPE: type, FROMSYMBOL: currency, PRICE: new_price} = JSON.parse(e.data);
+        let {TYPE: type, FROMSYMBOL: currency, PRICE: new_price} = JSON.parse(e.data);
+        const {MESSAGE: msg, PARAMETER: param} = JSON.parse(e.data);
+
+        if (type === INVALID_SUB) {
+            let msg_ticker = param.slice(PREFIX.length + 1, param.lastIndexOf('~'));
+
+            switch (msg) {
+                case 'INVALID_SUB':
+                    sendToWebSocket({
+                        action: 'SubAdd',
+                        subs: [`${PREFIX}~${msg_ticker}~BTC`],
+                    });
+
+                    if (!btc_tickers.has(msg_ticker)) btc_tickers.set(msg_ticker, 0);
+                    break;
+                case 'SUBSCRIPTION_UNRECOGNIZED':
+                    sendToWebSocket({
+                        action: 'SubRemove',
+                        subs: [`${PREFIX}~${msg_ticker}~BTC`],
+                    });
+
+                    btc_tickers.delete(msg_ticker);
+                    break;
+            }
+        }
 
         if (type !== AGGREGATE_INDEX || new_price === undefined) return true;
 
+        if (currency === 'BTC') {
+
+            btc_price = new_price;
+
+            for (let [currency, price] of btc_tickers.entries()) {
+                ticker_handler(currency, new_price * price);
+                data_channel.postMessage({c: currency, n: new_price * price});
+            }
+        }
+
         if (tickers.indexOf(currency) === -1) return true;
+
+        if (btc_tickers.has(currency)) {
+
+            btc_tickers.set(currency, new_price);
+
+            new_price = new_price * btc_price;
+        }
 
         ticker_handler(currency, new_price);
         data_channel.postMessage({c: currency, n: new_price});
@@ -93,22 +138,26 @@ function runDataBroadcasting() {
         while (tickers_queue.length) {
             sendToWebSocket({
                 action: 'SubAdd',
-                subs: [`5~CCCAGG~${tickers_queue.pop()}~USD`],
+                subs: [`${PREFIX}~${tickers_queue.pop()}~USD`],
             });
         }
     });
 
     emitter.on('subscribeToTickerOnWs', (ticker) => {
+        if (ticker === 'BTC') return true;
+
         sendToWebSocket({
             action: 'SubAdd',
-            subs: [`5~CCCAGG~${ticker}~USD`],
+            subs: [`${PREFIX}~${ticker}~USD`],
         });
     });
 
     emitter.on('unsubscribeFromTickerOnWs', (ticker) => {
+        if (ticker === 'BTC') return true;
+
         sendToWebSocket({
             action: 'SubRemove',
-            subs: [`5~CCCAGG~${ticker}~USD`],
+            subs: [`${PREFIX}~${ticker}~USD`],
         });
     });
 
