@@ -205,12 +205,6 @@ export default {
             this.tickers.filter((t) => t === this.selected_ticker).forEach((t) => {
                 this.graph.push(t.price);
 
-                if (this.graph.length < 3) {
-                    if (this.$refs.graphElement) {
-                        this.graph_element_width = this.$refs.graphElement.clientWidth;
-                    }
-                }
-
                 this.fixGraphWidth();
             });
         }, 2000);
@@ -289,11 +283,17 @@ export default {
         },
         selected_ticker() {
             this.graph = [];
-            this.$nextTick().then(this.calculateMaxGraphElements);
+            this.$nextTick(() => {
+                this.calculateMaxGraphElements();
+            });
         },
     },
     methods: {
         fixGraphWidth() {
+            if (this.$refs.graphElement && this.graph.length === 2) {
+                this.graph_element_width = this.$refs.graphElement.clientWidth;
+            }
+
             if (this.graph.length > this.max_graph_elements) {
                 this.graph = this.graph.slice(this.graph.length - this.max_graph_elements);
             }
