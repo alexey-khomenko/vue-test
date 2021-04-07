@@ -130,7 +130,9 @@
                      ref="graph">
                     <div class="bg-purple-800 border w-10 h-24"
                          :style="{height: `${bar}%`}"
-                         v-for="(bar, idx) in normalized_graph" :key="idx"
+                         v-for="(bar, idx) in normalized_graph"
+                         :key="idx"
+                         ref="graphElement"
                     ></div>
                 </div>
                 <button type="button"
@@ -177,6 +179,7 @@ export default {
             filter: '',
             selected_ticker: null,
             max_graph_elements: 1,
+            graph_element_width: 1,
             tickers: [],
             graph: [],
             coins: [],
@@ -202,9 +205,13 @@ export default {
             this.tickers.filter((t) => t === this.selected_ticker).forEach((t) => {
                 this.graph.push(t.price);
 
-                if (this.graph.length > this.max_graph_elements) {
-                    this.graph = this.graph.slice(this.graph.length - this.max_graph_elements);
+                if (this.graph.length < 3) {
+                    if (this.$refs.graphElement) {
+                        this.graph_element_width = this.$refs.graphElement.clientWidth;
+                    }
                 }
+
+                this.fixGraphWidth();
             });
         }, 2000);
     },
@@ -285,12 +292,19 @@ export default {
         },
     },
     methods: {
+        fixGraphWidth() {
+            if (this.graph.length > this.max_graph_elements) {
+                this.graph = this.graph.slice(this.graph.length - this.max_graph_elements);
+            }
+        },
         calculateMaxGraphElements() {
             if (!this.$refs.graph) {
                 return;
             }
 
-            this.max_graph_elements = this.$refs.graph.clientWidth / 38;
+            this.max_graph_elements = Math.floor(this.$refs.graph.clientWidth / this.graph_element_width);
+
+            this.fixGraphWidth();
         },
         formatPrice(price) {
             if (price === '-') {
