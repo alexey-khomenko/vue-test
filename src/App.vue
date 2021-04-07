@@ -289,6 +289,7 @@ export default {
         },
         selected_ticker() {
             this.graph = [];
+            this.$nextTick().then(this.calculateMaxGraphElements);
         },
     },
     methods: {
