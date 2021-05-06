@@ -3,8 +3,7 @@
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
             {{ selected.name }} - USD
         </h3>
-        <div class="flex items-end border-gray-600 border-b border-l h-64"
-             ref="graph">
+        <div class="flex items-end border-gray-600 border-b border-l h-64" ref="graph">
             <div class="bg-purple-800 border w-10 h-24"
                  :style="{height: `${bar}%`}"
                  v-for="(bar, idx) in normalized_graph"
@@ -55,6 +54,7 @@ export default {
             graph: [],
             max_graph_elements: 1,
             graph_element_width: 1,
+            timer_id: null,
         };
     },
 
@@ -105,21 +105,19 @@ export default {
         },
     },
 
-    created() {
-        // выравнивание ширины графика
-        setInterval(() => {
-            this.graph.push(this.selected.price);
+    mounted() {
+        window.addEventListener('resize', this.drawGraph);
 
+        this.timer_id = setInterval(() => {
+            this.graph.push(this.selected.price);
             this.drawGraph();
         }, 2000);
     },
 
-    mounted() {
-        window.addEventListener('resize', this.drawGraph);
-    },
-
     beforeUnmount() {
         window.removeEventListener('resize', this.drawGraph);
+
+        clearInterval(this.timer_id);
     },
 };
 </script>

@@ -5,7 +5,6 @@ self.addEventListener('connect', (e) => {
             if (connected === false) {
                 connected = true;
 
-                const tickers_queue = ['BTC'];
                 const btc_tickers = new Map();
                 let btc_price;
 
@@ -15,6 +14,13 @@ self.addEventListener('connect', (e) => {
                 const PREFIX = '5~CCCAGG';
                 const AGGREGATE_INDEX = '5';
                 const INVALID_SUB = '500';
+
+                const tickers_queue = [
+                    {
+                        action: 'SubAdd',
+                        subs: [`${PREFIX}~BTC~USD`],
+                    },
+                ];
 
                 socket.addEventListener('message', (e) => {
                     let {TYPE: type, FROMSYMBOL: currency, PRICE: new_price} = JSON.parse(e.data);
@@ -71,10 +77,7 @@ self.addEventListener('connect', (e) => {
 
                 socket.addEventListener('open', () => {
                     while (tickers_queue.length) {
-                        sendToWebSocket({
-                            action: 'SubAdd',
-                            subs: [`${PREFIX}~${tickers_queue.pop()}~USD`],
-                        });
+                        sendToWebSocket(tickers_queue.pop());
                     }
                 });
 
@@ -87,12 +90,14 @@ self.addEventListener('connect', (e) => {
 
                     if (socket.readyState === WebSocket.OPEN) {
                         socket.send(json_message);
-                    } else {
-                        tickers_queue.push(json_message);
+                    }
+                    else {
+                        tickers_queue.push(message);
                     }
                 }
             }
-        } else {
+        }
+        else {
             const {mode, ticker} = ev.data;
 
             if (mode === 'subscribeToTicker') {
