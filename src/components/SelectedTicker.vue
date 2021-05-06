@@ -7,7 +7,7 @@
              ref="graph">
             <div class="bg-purple-800 border w-10 h-24"
                  :style="{height: `${bar}%`}"
-                 v-for="(bar, idx) in graph"
+                 v-for="(bar, idx) in normalized_graph"
                  :key="idx"
                  ref="graphElement"
             ></div>
@@ -48,15 +48,78 @@ export default {
             type: Object,
             required: true,
         },
+    },
 
-        graph: {
-            type: Array,
-            required: true,
-        },
+    data() {
+        return {
+            graph: [],
+            max_graph_elements: 1,
+            graph_element_width: 1,
+        };
     },
 
     computed: {
+        normalized_graph() {
+            const max_value = Math.max(...this.graph);
+            const min_value = Math.min(...this.graph);
 
+            let result = [];
+
+            for (let price of this.graph) {
+                const height = min_value === max_value ? 50 : 5 + (price - min_value) * 95 / (max_value - min_value);
+
+                result.push(height);
+            }
+
+            return result;
+        },
+    },
+
+    watch: {
+        selected(value, old) {
+            if (value?.name !== old?.name) this.graph = [];
+        },
+    },
+
+    methods: {
+        drawGraph() {
+            this.calculateGraphElementWidth();
+            this.calculateMaxGraphElements();
+            this.fixGraphWidth();
+        },
+
+        calculateGraphElementWidth() {
+            if (this.$refs.graphElement && this.graph.length === 2) {
+                this.graph_element_width = this.$refs.graphElement.clientWidth;
+            }
+        },
+
+        calculateMaxGraphElements() {
+            this.max_graph_elements = Math.floor(this.$refs.graph.clientWidth / this.graph_element_width);
+        },
+
+        fixGraphWidth() {
+            if (this.graph.length > this.max_graph_elements) {
+                this.graph = this.graph.slice(this.graph.length - this.max_graph_elements);
+            }
+        },
+    },
+
+    created() {
+        // выравнивание ширины графика
+        setInterval(() => {
+            this.graph.push(this.selected.price);
+
+            this.drawGraph();
+        }, 2000);
+    },
+
+    mounted() {
+        window.addEventListener('resize', this.drawGraph);
+    },
+
+    beforeUnmount() {
+        window.removeEventListener('resize', this.drawGraph);
     },
 };
 </script>

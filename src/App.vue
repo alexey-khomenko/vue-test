@@ -13,8 +13,12 @@
         </div>
         <div class="container" v-show="!loading">
 
-            <add-ticker @add-ticker="add" @loading-complete="loading = false" @clean-error="error = false"
-                        :disabled="tooManyTickersAdded" :error="error"/>
+            <add-ticker @add-ticker="add"
+                        @loading-complete="loading = false"
+                        @clean-error="error = false"
+                        :disabled="tooManyTickersAdded"
+                        :error="error"
+            />
 
             <template v-if="tickers.length">
                 <hr class="w-full border-t border-gray-600 my-4"/>
@@ -41,10 +45,10 @@
                 <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
                     <div v-for="t in paginated_tickers" :key="t.name"
                          class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
-                         :class="{'border-4': selected_ticker === t}"
+                         :class="{'border-4': selected === t}"
                     >
                         <div class="px-4 py-5 sm:p-6 text-center"
-                             @click="select(t)"
+                             @click="selected = t"
                         >
                             <dt class="text-sm font-medium text-gray-500 truncate">
                                 {{ t.name }} - USD
@@ -74,9 +78,9 @@
                 <hr class="w-full border-t border-gray-600 my-4"/>
             </template>
 
-            <selected-ticker v-if="selected_ticker"
-                             @clean-selected="selected_ticker = null"
-                             :selected="selected_ticker" :graph="normalized_graph"
+            <selected-ticker v-if="selected"
+                             @clean-selected="selected = null"
+                             :selected="selected"
             />
         </div>
     </div>
@@ -103,11 +107,8 @@ export default {
         return {
             loading: true,
             filter: '',
-            selected_ticker: null,
-            max_graph_elements: 1,
-            graph_element_width: 1,
+            selected: null,
             tickers: [],
-            graph: [],
             error: false,
             page: 1,
         };
@@ -124,44 +125,9 @@ export default {
             this.tickers.push({name: currency, price: '-'});
             subscribeToTicker(currency);
         });
-
-        // выравнивание ширины графика
-        setInterval(() => {
-            this.tickers.filter((t) => t === this.selected_ticker).forEach((t) => {
-                this.graph.push(t.price);
-
-            // todo
-            //    this.fixGraphWidth();
-            });
-        }, 2000);
-    },
-
-    mounted() {
-        window.addEventListener('resize', this.calculateMaxGraphElements);
-    },
-
-    beforeUnmount() {
-        window.removeEventListener('resize', this.calculateMaxGraphElements);
     },
 
     computed: {
-        normalized_graph() {
-            const max_value = Math.max(...this.graph);
-            const min_value = Math.min(...this.graph);
-
-            let result = [];
-
-            for (let price of this.graph) {
-                const height = min_value === max_value ? 50 : 5 + (price - min_value) * 95 / (max_value - min_value);
-
-                result.push(height);
-            }
-
-            console.log(result);
-
-            return result;
-        },
-
         start_index() {
             return (this.page - 1) * 6;
         },
@@ -202,39 +168,9 @@ export default {
                 --this.page;
             }
         },
-
-        selected_ticker() {
-            this.graph = [];
-            this.$nextTick(() => {
-                this.calculateMaxGraphElements();
-            });
-        },
     },
 
     methods: {
-        fixGraphWidth() {
-            // todo refs
-
-            if (this.$refs.graphElement && this.graph.length === 2) {
-                this.graph_element_width = this.$refs.graphElement.clientWidth;
-            }
-
-            if (this.graph.length > this.max_graph_elements) {
-                this.graph = this.graph.slice(this.graph.length - this.max_graph_elements);
-            }
-        },
-
-        calculateMaxGraphElements() {
-            if (!this.$refs.graph) {
-                return;
-            }
-
-            this.max_graph_elements = Math.floor(this.$refs.graph.clientWidth / this.graph_element_width);
-
-            // todo
-            //this.fixGraphWidth();
-        },
-
         formatPrice(price) {
             if (price === '-') {
                 return price;
@@ -268,16 +204,12 @@ export default {
         remove(ticker_name) {
             this.tickers = this.tickers.filter((t) => t.name !== ticker_name);
 
-            if (this.selected_ticker?.name === ticker_name) {
-                this.selected_ticker = null;
+            if (this.selected?.name === ticker_name) {
+                this.selected = null;
             }
 
             unsubscribeFromTicker(ticker_name);
             removeCurrencyFromStorage(ticker_name);
-        },
-
-        select(ticker) {
-            this.selected_ticker = ticker;
         },
     },
 };
