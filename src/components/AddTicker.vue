@@ -2,9 +2,7 @@
     <section>
         <div class="flex">
             <div class="max-w-xs">
-                <label for="wallet" class="block text-sm font-medium text-gray-700">
-                    Тикер
-                </label>
+                <label for="wallet" class="block text-sm font-medium text-gray-700">Тикер</label>
                 <div class="mt-1 relative rounded-md shadow-md">
                     <input v-model="ticker"
                            @keydown.enter="add"
@@ -17,15 +15,13 @@
                 </div>
             </div>
         </div>
-        <add-button @click="add" class="my-4" :disabled="disabled"/>
+        <add-button @click="add" type="button" :disabled="disabled" class="my-4"/>
     </section>
 </template>
-
 <script>
-import AddButton from './AddButton';
+import AddButton from './AddButton.vue';
 
 export default {
-    name: 'AddTicker',
     components: {
         AddButton,
     },
@@ -39,21 +35,18 @@ export default {
     },
 
     emits: {
-        'add-ticker': (value) => {
-            return typeof value === 'string' && value.length > 0;
-        },
+        'add-ticker': value => typeof value === 'string' && value.length > 0,
     },
 
     data() {
-        return {
-            ticker: '',
-        };
+        return {ticker: ''};
     },
 
     methods: {
         add() {
-            if (this.ticker.length === 0) return;
-
+            if (this.ticker.length === 0) {
+                return;
+            }
             this.$emit('add-ticker', this.ticker);
             this.ticker = '';
         },
