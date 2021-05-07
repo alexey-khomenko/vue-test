@@ -31,7 +31,7 @@
             </div>
         </div>
 
-        <add-ticker-button @click="(ticker)" :disabled="disabled" class="my-4"/>
+        <add-ticker-button @click="add" :disabled="disabled" class="my-4"/>
     </section>
 </template>
 
@@ -95,8 +95,8 @@ export default {
     },
 
     methods: {
-        add(ticker_name) {
-            const name = ticker_name.toUpperCase();
+        add() {
+            const name = this.ticker.toUpperCase();
 
             if (name.length === 0) {
                 return;
